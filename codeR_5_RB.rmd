@@ -1,1 +1,110 @@
+### Analisis Data Eksploratif
 
+```{r}
+library(readxl)
+library(e1071)
+
+df_pre  <- read.csv("Dataset Tugas Besar ADS - Survei Kepuasan Sebelum Test.csv")
+df_post <- read.csv("Dataset Tugas Besar ADS - Survei Kepuasan Setelah Test.csv")
+
+skor_pre  <- rowSums(df_pre[, 2:11])
+skor_post <- rowSums(df_post[, 2:11])
+selisih   <- skor_post - skor_pre
+
+ringkasan_statistik <- function(x, nama) {
+  q1  <- quantile(x, 0.25)
+  q3  <- quantile(x, 0.75)
+  iqr <- IQR(x)
+  batas_bawah <- q1 - 1.5 * iqr
+  batas_atas  <- q3 + 1.5 * iqr
+  
+  cat("\n========================================\n")
+  cat("STATISTIK DESKRIPTIF:", nama, "\n")
+  cat("========================================\n")
+  cat("Jumlah Sampel (n) :", length(x), "\n")
+  cat("Mean              :", round(mean(x), 4), "\n")
+  cat("Median            :", round(median(x), 4), "\n")
+  cat("Standar Deviasi   :", round(sd(x), 4), "\n")
+  cat("Varians           :", round(var(x), 4), "\n")
+  cat("Minimum           :", min(x), "\n")
+  cat("Kuartil 1 (Q1)    :", q1, "\n")
+  cat("Kuartil 3 (Q3)    :", q3, "\n")
+  cat("Maksimum          :", max(x), "\n")
+  cat("IQR               :", iqr, "\n")
+  cat("Skewness          :", round(skewness(x), 4), "\n")
+  cat("Batas             : [", batas_bawah, ",", batas_atas, "]\n")
+}
+
+ringkasan_statistik(skor_pre,  "SKOR SEBELUM TES")
+ringkasan_statistik(skor_post, "SKOR SETELAH TES")
+ringkasan_statistik(selisih,   "SELISIH SKOR (SETELAH - SEBELUM)")
+```
+
+BOXPLOT
+
+```{r}
+boxplot(skor_pre, skor_post,
+        names = c("Sebelum Tes", "Setelah Tes"),
+        col = c("#95A5A6", "#2ECC71"),
+        ylim = c(8, 52),
+        las = 1,
+        main = "Perbandingan Skor Pemahaman Next.js\nSebelum dan Setelah Tes",
+        ylab = "Skor Total (10 - 50)")
+grid(nx = NA, ny = NULL, lty = 2, col = "lightgray")
+```
+
+HISTOGRAM
+
+```{r}
+hist(selisih,
+     prob = TRUE,
+     breaks = 10,
+     col = "#AED6F1",
+     border = "white",
+     ylim = c(0, 0.06),
+     las = 1,
+     main = "Distribusi Selisih Skor (Setelah - Sebelum)",
+     xlab = "Selisih Skor Total",
+     ylab = "Densitas")
+lines(density(selisih), col = "#1B4F72", lwd = 2)
+abline(v = 0, col = "red", lwd = 1.5, lty = 2)
+abline(v = mean(selisih), col = "darkgreen", lwd = 2, lty = 1)
+legend("topright",
+       legend = c("Kurva Densitas", "Titik Nol (0)", "Rata-rata (+5,35)"),
+       col = c("#1B4F72", "red", "darkgreen"),
+       lty = c(1, 2, 1),
+       lwd = 2,
+       bty = "n",
+       cex = 0.85)
+```
+
+Q-Q Plot
+
+```{r}
+qqnorm(selisih,
+       pch = 19,
+       col = "#3498DB",
+       las = 1,
+       main = "Normal Q-Q Plot Selisih Skor",
+       xlab = "Kuantil Teoritis (Normal)",
+       ylab = "Kuantil Sampel")
+qqline(selisih, col = "red", lwd = 2)
+grid(lty = 2, col = "lightgray")
+```
+
+### **Uji Normalitas**
+
+```{r}
+uji_normalitas <- shapiro.test(selisih)
+print(uji_normalitas)
+```
+
+### Uji-t dua populasi data berpasangan
+
+```{r}
+uji_t <- t.test(skor_post, skor_pre,
+                paired = TRUE,
+                alternative = "two.sided",
+                conf.level = 0.95)
+print(uji_t)
+```
